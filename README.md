@@ -7,8 +7,8 @@ A unified profile board for Discord — combines **MusicBoard**, **AniBoard**, a
 ## Features
 
 - Adds a **SuperBoard** tab to user profiles with an interactive board selector.
-- **🎵 FavMusic** — Search and add music from iTunes with album art and **30-second audio previews**.
-- **🎬 FavAnime** — Search and add anime from MyAnimeList. Supports favorites and hate lists. Import from MAL username.
+- **🎵 MusicBoard/FavMusic** — Search and add music from iTunes with album art and **30-second audio previews**.
+- **🎬 AniBoard/FavAnime** — Search and add anime from MyAnimeList. Supports favorites and hate lists. Import from MAL username.
 - **🎮 GameBoard** — Info about Discord's built-in game activity feature.
 - **Fully self-contained** — no need to install FavAnime or any other plugin.
 - **Cloud sync** — your music and anime lists are synced to the server so other users can see them on your profile.
@@ -55,6 +55,7 @@ This plugin uses the following external APIs:
 - **[iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/)** — Music search. No authentication required. Apple's [Terms of Service](https://www.apple.com/legal/internet-services/itunes/) apply.
 - **[Jikan API](https://jikan.moe/)** — Unofficial MyAnimeList API for anime search and MAL user favorites import. No authentication required.
 - **Custom sync server** — anachter.dev backend. Stores music and anime lists by Discord user ID.
+
 
 
 

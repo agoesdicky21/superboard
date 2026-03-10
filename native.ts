@@ -20,8 +20,16 @@ import { IpcMainInvokeEvent } from "electron";
 
 const API_BASE = "https://api.anachter.dev/api/favanime";
 const MUSIC_API_BASE = "https://api.anachter.dev/api/favmusic";
+const MANGA_API_BASE = "https://api.anachter.dev/api/favmanga";
+const FILM_API_BASE = "https://api.anachter.dev/api/favfilm";
+const SERIES_API_BASE = "https://api.anachter.dev/api/favseries";
+const BOOK_API_BASE = "https://api.anachter.dev/api/favbook";
+const TROLL_API_BASE = "https://api.anachter.dev/api/favtroll";
 const JIKAN_API = "https://api.jikan.moe/v4";
 const ITUNES_API = "https://itunes.apple.com";
+const TVMAZE_API = "https://api.tvmaze.com";
+const OPENLIBRARY_API = "https://openlibrary.org";
+const WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php";
 
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024; // 2 MB
 
@@ -158,6 +166,97 @@ export async function fetchUserFavorites(
     }
 }
 
+// ==================== Manga Server Sync ====================
+
+export async function syncMangaList(
+    _: IpcMainInvokeEvent,
+    userId: string,
+    token: string,
+    favorites: any[],
+): Promise<{ success: boolean; error?: string; }> {
+    if (!isValidSnowflake(userId)) return { success: false, error: "Invalid userId" };
+    try {
+        const res = await fetch(`${MANGA_API_BASE}/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, token, favorites }),
+        });
+        if (res.ok) return { success: true };
+        try {
+            const data = await res.json();
+            return { success: false, error: data.error ?? `HTTP ${res.status}` };
+        } catch {
+            return { success: false, error: `HTTP ${res.status}` };
+        }
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+}
+
+function reconstructManga(a: any): any {
+    if (!a || typeof a !== "object") return null;
+    if (!Number.isInteger(a.mal_id) || a.mal_id <= 0) return null;
+    if (typeof a.title !== "string" || !a.title) return null;
+    const image_url = typeof a.image_url === "string" ? a.image_url : "";
+    return {
+        mal_id: a.mal_id,
+        title: a.title,
+        title_english: null,
+        images: { jpg: { image_url, small_image_url: image_url, large_image_url: image_url } },
+        score: a.score ?? null,
+        chapters: a.chapters ?? null,
+        volumes: a.volumes ?? null,
+        type: a.type ?? "Manga",
+        status: a.status ?? "",
+        synopsis: null,
+        year: a.year ?? null,
+        genres: [],
+    };
+}
+
+export async function fetchMangaList(
+    _: IpcMainInvokeEvent,
+    userId: string
+): Promise<{ favorites: any[]; }> {
+    if (!isValidSnowflake(userId)) return { favorites: [] };
+    try {
+        const res = await fetch(`${MANGA_API_BASE}/${encodeURIComponent(userId)}`);
+        if (!res.ok) return { favorites: [] };
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const data = JSON.parse(text);
+        return {
+            favorites: (data.favorites ?? []).map(reconstructManga).filter(Boolean),
+        };
+    } catch {
+        return { favorites: [] };
+    }
+}
+
+export async function searchManga(
+    _: IpcMainInvokeEvent,
+    query: string
+): Promise<any[]> {
+    if (!query.trim()) return [];
+    if (query.length > 200) return [];
+    try {
+        const res = await fetch(
+            `${JIKAN_API}/manga?q=${encodeURIComponent(query)}&limit=12&sfw=true`
+        );
+        if (!res.ok) return [];
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return [];
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return [];
+        const json = JSON.parse(text);
+        return json.data ?? [];
+    } catch {
+        return [];
+    }
+}
+
 // ==================== Music Server Sync ====================
 
 export async function syncMusicList(
@@ -260,7 +359,413 @@ export async function searchMusic(
     }
 }
 
-// ==================== Image Proxy ====================
+// ==================== Film Server Sync ====================
+
+export async function syncFilmList(
+    _: IpcMainInvokeEvent,
+    userId: string,
+    token: string,
+    favorites: any[],
+): Promise<{ success: boolean; error?: string; }> {
+    if (!isValidSnowflake(userId)) return { success: false, error: "Invalid userId" };
+    try {
+        const res = await fetch(`${FILM_API_BASE}/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, token, favorites }),
+        });
+        if (res.ok) return { success: true };
+        try {
+            const data = await res.json();
+            return { success: false, error: data.error ?? `HTTP ${res.status}` };
+        } catch {
+            return { success: false, error: `HTTP ${res.status}` };
+        }
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+}
+
+function reconstructFilm(a: any): any {
+    if (!a || typeof a !== "object") return null;
+    if (!Number.isInteger(a.id) || a.id <= 0) return null;
+    if (typeof a.title !== "string" || !a.title) return null;
+    return {
+        id: a.id,
+        title: a.title,
+        director: typeof a.director === "string" ? a.director : "",
+        genre: typeof a.genre === "string" ? a.genre : "",
+        cover_small: typeof a.cover_small === "string" ? a.cover_small : "",
+        cover_medium: typeof a.cover_medium === "string" ? a.cover_medium : "",
+        cover_big: typeof a.cover_big === "string" ? a.cover_big : "",
+        duration: typeof a.duration === "number" ? a.duration : 0,
+        link: typeof a.link === "string" ? a.link : "",
+        release_year: typeof a.release_year === "number" ? a.release_year : null,
+    };
+}
+
+export async function fetchFilmList(
+    _: IpcMainInvokeEvent,
+    userId: string
+): Promise<{ favorites: any[]; }> {
+    if (!isValidSnowflake(userId)) return { favorites: [] };
+    try {
+        const res = await fetch(`${FILM_API_BASE}/${encodeURIComponent(userId)}`);
+        if (!res.ok) return { favorites: [] };
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const data = JSON.parse(text);
+        return {
+            favorites: (data.favorites ?? []).map(reconstructFilm).filter(Boolean),
+        };
+    } catch {
+        return { favorites: [] };
+    }
+}
+
+export async function searchFilm(
+    _: IpcMainInvokeEvent,
+    query: string
+): Promise<any[]> {
+    if (!query.trim()) return [];
+    if (query.length > 200) return [];
+    try {
+        const res = await fetch(
+            `${ITUNES_API}/search?term=${encodeURIComponent(query)}&media=movie&limit=15&entity=movie`
+        );
+        if (!res.ok) return [];
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return [];
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return [];
+        const json = JSON.parse(text);
+        return (json.results ?? []).map((t: any) => ({
+            id: t.trackId,
+            title: t.trackName ?? "",
+            director: t.artistName ?? "",
+            genre: t.primaryGenreName ?? "",
+            cover_small: (t.artworkUrl100 ?? "").replace("100x100", "200x300"),
+            cover_medium: (t.artworkUrl100 ?? "").replace("100x100", "400x600"),
+            cover_big: (t.artworkUrl100 ?? "").replace("100x100", "600x900"),
+            duration: Math.round((t.trackTimeMillis ?? 0) / 1000),
+            link: t.trackViewUrl ?? "",
+            release_year: t.releaseDate ? new Date(t.releaseDate).getFullYear() : null,
+        }));
+    } catch {
+        return [];
+    }
+}
+
+// ==================== Series Server Sync ====================
+
+export async function syncSeriesList(
+    _: IpcMainInvokeEvent,
+    userId: string,
+    token: string,
+    favorites: any[],
+): Promise<{ success: boolean; error?: string; }> {
+    if (!isValidSnowflake(userId)) return { success: false, error: "Invalid userId" };
+    try {
+        const res = await fetch(`${SERIES_API_BASE}/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, token, favorites }),
+        });
+        if (res.ok) return { success: true };
+        try {
+            const data = await res.json();
+            return { success: false, error: data.error ?? `HTTP ${res.status}` };
+        } catch {
+            return { success: false, error: `HTTP ${res.status}` };
+        }
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+}
+
+function reconstructSeries(a: any): any {
+    if (!a || typeof a !== "object") return null;
+    if (!Number.isInteger(a.id) || a.id <= 0) return null;
+    if (typeof a.title !== "string" || !a.title) return null;
+    return {
+        id: a.id,
+        title: a.title,
+        image_medium: typeof a.image_medium === "string" ? a.image_medium : "",
+        image_original: typeof a.image_original === "string" ? a.image_original : "",
+        rating: typeof a.rating === "number" ? a.rating : null,
+        year: typeof a.year === "number" ? a.year : null,
+        status: typeof a.status === "string" ? a.status : "",
+        genres: typeof a.genres === "string" ? a.genres : "",
+        network: typeof a.network === "string" ? a.network : "",
+        link: typeof a.link === "string" ? a.link : "",
+    };
+}
+
+export async function fetchSeriesList(
+    _: IpcMainInvokeEvent,
+    userId: string
+): Promise<{ favorites: any[]; }> {
+    if (!isValidSnowflake(userId)) return { favorites: [] };
+    try {
+        const res = await fetch(`${SERIES_API_BASE}/${encodeURIComponent(userId)}`);
+        if (!res.ok) return { favorites: [] };
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const data = JSON.parse(text);
+        return {
+            favorites: (data.favorites ?? []).map(reconstructSeries).filter(Boolean),
+        };
+    } catch {
+        return { favorites: [] };
+    }
+}
+
+export async function searchSeries(
+    _: IpcMainInvokeEvent,
+    query: string
+): Promise<any[]> {
+    if (!query.trim()) return [];
+    if (query.length > 200) return [];
+    try {
+        const res = await fetch(
+            `${TVMAZE_API}/search/shows?q=${encodeURIComponent(query)}`
+        );
+        if (!res.ok) return [];
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return [];
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return [];
+        const json = JSON.parse(text);
+        return (json ?? []).slice(0, 12).map((entry: any) => {
+            const s = entry.show;
+            if (!s) return null;
+            return {
+                id: s.id,
+                title: s.name ?? "",
+                image_medium: s.image?.medium ?? "",
+                image_original: s.image?.original ?? "",
+                rating: s.rating?.average ?? null,
+                year: s.premiered ? new Date(s.premiered).getFullYear() : null,
+                status: s.status ?? "",
+                genres: (s.genres ?? []).join(", "),
+                network: s.network?.name ?? s.webChannel?.name ?? "",
+                link: s.url ?? "",
+            };
+        }).filter(Boolean);
+    } catch {
+        return [];
+    }
+}
+
+// ==================== Book Server Sync ====================
+
+export async function syncBookList(
+    _: IpcMainInvokeEvent,
+    userId: string,
+    token: string,
+    favorites: any[],
+): Promise<{ success: boolean; error?: string; }> {
+    if (!isValidSnowflake(userId)) return { success: false, error: "Invalid userId" };
+    try {
+        const res = await fetch(`${BOOK_API_BASE}/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, token, favorites }),
+        });
+        if (res.ok) return { success: true };
+        try {
+            const data = await res.json();
+            return { success: false, error: data.error ?? `HTTP ${res.status}` };
+        } catch {
+            return { success: false, error: `HTTP ${res.status}` };
+        }
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+}
+
+function reconstructBook(a: any): any {
+    if (!a || typeof a !== "object") return null;
+    if (typeof a.id !== "string" || !a.id) return null;
+    if (typeof a.title !== "string" || !a.title) return null;
+    return {
+        id: a.id,
+        title: a.title,
+        author: typeof a.author === "string" ? a.author : "",
+        cover_small: typeof a.cover_small === "string" ? a.cover_small : "",
+        cover_medium: typeof a.cover_medium === "string" ? a.cover_medium : "",
+        cover_big: typeof a.cover_big === "string" ? a.cover_big : "",
+        year: typeof a.year === "number" ? a.year : null,
+        pages: typeof a.pages === "number" ? a.pages : null,
+        subject: typeof a.subject === "string" ? a.subject : "",
+        link: typeof a.link === "string" ? a.link : "",
+    };
+}
+
+export async function fetchBookList(
+    _: IpcMainInvokeEvent,
+    userId: string
+): Promise<{ favorites: any[]; }> {
+    if (!isValidSnowflake(userId)) return { favorites: [] };
+    try {
+        const res = await fetch(`${BOOK_API_BASE}/${encodeURIComponent(userId)}`);
+        if (!res.ok) return { favorites: [] };
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const data = JSON.parse(text);
+        return {
+            favorites: (data.favorites ?? []).map(reconstructBook).filter(Boolean),
+        };
+    } catch {
+        return { favorites: [] };
+    }
+}
+
+export async function searchBook(
+    _: IpcMainInvokeEvent,
+    query: string
+): Promise<any[]> {
+    if (!query.trim()) return [];
+    if (query.length > 200) return [];
+    try {
+        const res = await fetch(
+            `${OPENLIBRARY_API}/search.json?q=${encodeURIComponent(query)}&limit=15&fields=key,title,author_name,first_publish_year,number_of_pages_median,subject,cover_i`
+        );
+        if (!res.ok) return [];
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return [];
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return [];
+        const json = JSON.parse(text);
+        return (json.docs ?? []).filter((d: any) => d.cover_i).slice(0, 15).map((d: any) => {
+            const coverId = d.cover_i;
+            return {
+                id: d.key ?? "",
+                title: d.title ?? "",
+                author: Array.isArray(d.author_name) ? d.author_name.slice(0, 2).join(", ") : "",
+                cover_small: `https://covers.openlibrary.org/b/id/${coverId}-S.jpg`,
+                cover_medium: `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`,
+                cover_big: `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`,
+                year: typeof d.first_publish_year === "number" ? d.first_publish_year : null,
+                pages: typeof d.number_of_pages_median === "number" ? d.number_of_pages_median : null,
+                subject: Array.isArray(d.subject) ? d.subject.slice(0, 2).join(", ") : "",
+                link: `https://openlibrary.org${d.key}`,
+            };
+        });
+    } catch {
+        return [];
+    }
+}
+
+// ==================== Troll Server Sync ====================
+
+export async function syncTrollData(
+    _: IpcMainInvokeEvent,
+    userId: string,
+    token: string,
+    favorites: any[],
+): Promise<{ success: boolean; error?: string; }> {
+    if (!isValidSnowflake(userId)) return { success: false, error: "Invalid userId" };
+    try {
+        const res = await fetch(`${TROLL_API_BASE}/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId, token, favorites }),
+        });
+        if (res.ok) return { success: true };
+        try {
+            const data = await res.json();
+            return { success: false, error: data.error ?? `HTTP ${res.status}` };
+        } catch {
+            return { success: false, error: `HTTP ${res.status}` };
+        }
+    } catch (e) {
+        return { success: false, error: String(e) };
+    }
+}
+
+export async function fetchTrollData(
+    _: IpcMainInvokeEvent,
+    userId: string
+): Promise<{ favorites: any[]; }> {
+    if (!isValidSnowflake(userId)) return { favorites: [] };
+    try {
+        const res = await fetch(`${TROLL_API_BASE}/${encodeURIComponent(userId)}`);
+        if (!res.ok) return { favorites: [] };
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return { favorites: [] };
+        const data = JSON.parse(text);
+        return { favorites: data.favorites ?? [] };
+    } catch {
+        return { favorites: [] };
+    }
+}
+
+// ==================== Wikipedia Search API ====================
+
+export async function searchWikipedia(
+    _: IpcMainInvokeEvent,
+    query: string
+): Promise<any[]> {
+    if (!query.trim()) return [];
+    if (query.length > 200) return [];
+    try {
+        const params = new URLSearchParams({
+            action: "query",
+            list: "search",
+            srsearch: query,
+            srlimit: "15",
+            format: "json",
+            utf8: "1",
+        });
+        const res = await fetch(`${WIKIPEDIA_API}?${params.toString()}`);
+        if (!res.ok) return [];
+        const cl = res.headers.get("content-length");
+        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return [];
+        const text = await res.text();
+        if (text.length > MAX_RESPONSE_BYTES) return [];
+        const json = JSON.parse(text);
+        const searchResults = json.query?.search ?? [];
+        if (searchResults.length === 0) return [];
+
+        // Fetch thumbnails for all results
+        const pageIds = searchResults.map((r: any) => r.pageid).join("|");
+        const thumbParams = new URLSearchParams({
+            action: "query",
+            pageids: pageIds,
+            prop: "pageimages|description",
+            piprop: "thumbnail",
+            pithumbsize: "300",
+            format: "json",
+        });
+        const thumbRes = await fetch(`${WIKIPEDIA_API}?${thumbParams.toString()}`);
+        const thumbData = thumbRes.ok ? JSON.parse(await thumbRes.text()) : {};
+        const pages = thumbData.query?.pages ?? {};
+
+        return searchResults.map((r: any) => {
+            const page = pages[r.pageid] ?? {};
+            return {
+                pageid: r.pageid,
+                title: r.title,
+                description: (page.description ?? r.snippet?.replace(/<[^>]*>/g, "") ?? "").slice(0, 200),
+                thumbnail: page.thumbnail?.source ?? "",
+                url: `https://en.wikipedia.org/wiki/${encodeURIComponent(r.title.replace(/ /g, "_"))}`,
+            };
+        });
+    } catch {
+        return [];
+    }
+}
+
+// ==================== Image Proxy ==
 
 const ALLOWED_IMAGE_HOSTS = [
     "https://cdn.myanimelist.net/",
@@ -270,6 +775,9 @@ const ALLOWED_IMAGE_HOSTS = [
     "https://is3-ssl.mzstatic.com/",
     "https://is4-ssl.mzstatic.com/",
     "https://is5-ssl.mzstatic.com/",
+    "https://static.tvmaze.com/",
+    "https://covers.openlibrary.org/",
+    "https://upload.wikimedia.org/",
 ];
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB

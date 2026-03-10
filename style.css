@@ -1,6 +1,15 @@
 /* ==================== Font & Color Inheritance Fix ==================== */
 
 .vc-superboard-board-content,
+.vc-superboard-board-content *,
+.vc-superboard-selector,
+.vc-superboard-selector *,
+.vc-superboard-settings,
+.vc-superboard-settings * {
+    box-sizing: border-box;
+}
+
+.vc-superboard-board-content,
 .vc-superboard-selector,
 .vc-superboard-settings {
     font-family: var(--font-primary);
@@ -67,6 +76,8 @@
 
 .vc-superboard-board-content {
     padding: 12px 16px;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .vc-superboard-board-header {
@@ -84,13 +95,15 @@
 
 .vc-superboard-board-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    max-height: 300px;
+    max-height: 340px;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-right: 4px;
     scrollbar-width: thin;
     scrollbar-color: var(--background-modifier-accent) transparent;
+    width: 100%;
 }
 
 .vc-superboard-board-grid::-webkit-scrollbar {
@@ -114,18 +127,20 @@
 
 .vc-superboard-card {
     position: relative;
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
     background: var(--background-secondary);
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .vc-superboard-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Poster (default: 1:1 for music) */
@@ -352,6 +367,8 @@
     flex-direction: column;
     gap: 2px;
     min-height: 0;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .vc-superboard-card-title {
@@ -460,6 +477,7 @@
 
 .vc-superboard-settings-tabs {
     display: flex;
+    flex-wrap: wrap;
     gap: 4px;
     margin-bottom: 20px;
     padding-bottom: 0;
@@ -559,8 +577,36 @@
     }
 
     .vc-superboard-board-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
     }
+}
+
+/* ==================== Drag & Drop Reorder ==================== */
+
+.vc-superboard-drag-item {
+    cursor: grab;
+    border-radius: 12px;
+    transition: opacity 0.15s ease;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.vc-superboard-drag-item:active {
+    cursor: grabbing;
+}
+
+.vc-superboard-drag-item > .vc-superboard-card {
+    height: 100%;
+}
+
+.vc-superboard-dragging {
+    opacity: 0.35;
+}
+
+.vc-superboard-drag-over {
+    outline: 2px solid var(--brand-500);
+    outline-offset: -2px;
+    border-radius: 12px;
 }
 
 /* ==================== Here is end ==================== */

@@ -2202,7 +2202,7 @@ function TrollBoardContent({ user, isCurrentUser, onBack }: { user: User; isCurr
             </div>
             <div className="vc-superboard-board-header">
                 <Text variant="text-xs/semibold" style={{ color: "var(--header-secondary)", textTransform: "uppercase", letterSpacing: "0.02em" }}>
-                    📰 FavWiki ({trollList.length})
+                    📰 ({trollList.length})
                 </Text>
                 {isCurrentUser && (
                     <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={handleAdd}>Add</Button>

@@ -569,14 +569,14 @@ export async function syncTrollData(
     _: IpcMainInvokeEvent,
     userId: string,
     token: string,
-    favorites: any[],
+    troll: any[],
 ): Promise<{ success: boolean; error?: string; }> {
     if (!isValidSnowflake(userId)) return { success: false, error: "Invalid userId" };
     try {
         const res = await fetch(`${TROLL_API_BASE}/sync`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, token, favorites }),
+            body: JSON.stringify({ userId, token, troll }),
         });
         if (res.ok) return { success: true };
         try {
@@ -603,7 +603,8 @@ export async function fetchTrollData(
         const text = await res.text();
         if (text.length > MAX_RESPONSE_BYTES) return { favorites: [] };
         const data = JSON.parse(text);
-        return { favorites: data.favorites ?? [] };
+        const trollArr = data.troll;
+        return { favorites: Array.isArray(trollArr) ? trollArr : [] };
     } catch {
         return { favorites: [] };
     }

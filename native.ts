@@ -21,7 +21,6 @@ import { IpcMainInvokeEvent } from "electron";
 const API_BASE = "https://api.anachter.dev/api/favanime";
 const MUSIC_API_BASE = "https://api.anachter.dev/api/favmusic";
 const MANGA_API_BASE = "https://api.anachter.dev/api/favmanga";
-const FILM_API_BASE = "https://api.anachter.dev/api/favfilm";
 const SERIES_API_BASE = "https://api.anachter.dev/api/favseries";
 const BOOK_API_BASE = "https://api.anachter.dev/api/favbook";
 const TROLL_API_BASE = "https://api.anachter.dev/api/favtroll";
@@ -353,105 +352,6 @@ export async function searchMusic(
             preview_url: t.previewUrl ?? "",
             duration: Math.round((t.trackTimeMillis ?? 0) / 1000),
             link: t.trackViewUrl ?? "",
-        }));
-    } catch {
-        return [];
-    }
-}
-
-// ==================== Film Server Sync ====================
-
-export async function syncFilmList(
-    _: IpcMainInvokeEvent,
-    userId: string,
-    token: string,
-    favorites: any[],
-): Promise<{ success: boolean; error?: string; }> {
-    if (!isValidSnowflake(userId)) return { success: false, error: "Invalid userId" };
-    try {
-        const res = await fetch(`${FILM_API_BASE}/sync`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId, token, favorites }),
-        });
-        if (res.ok) return { success: true };
-        try {
-            const data = await res.json();
-            return { success: false, error: data.error ?? `HTTP ${res.status}` };
-        } catch {
-            return { success: false, error: `HTTP ${res.status}` };
-        }
-    } catch (e) {
-        return { success: false, error: String(e) };
-    }
-}
-
-function reconstructFilm(a: any): any {
-    if (!a || typeof a !== "object") return null;
-    if (!Number.isInteger(a.id) || a.id <= 0) return null;
-    if (typeof a.title !== "string" || !a.title) return null;
-    return {
-        id: a.id,
-        title: a.title,
-        director: typeof a.director === "string" ? a.director : "",
-        genre: typeof a.genre === "string" ? a.genre : "",
-        cover_small: typeof a.cover_small === "string" ? a.cover_small : "",
-        cover_medium: typeof a.cover_medium === "string" ? a.cover_medium : "",
-        cover_big: typeof a.cover_big === "string" ? a.cover_big : "",
-        duration: typeof a.duration === "number" ? a.duration : 0,
-        link: typeof a.link === "string" ? a.link : "",
-        release_year: typeof a.release_year === "number" ? a.release_year : null,
-    };
-}
-
-export async function fetchFilmList(
-    _: IpcMainInvokeEvent,
-    userId: string
-): Promise<{ favorites: any[]; }> {
-    if (!isValidSnowflake(userId)) return { favorites: [] };
-    try {
-        const res = await fetch(`${FILM_API_BASE}/${encodeURIComponent(userId)}`);
-        if (!res.ok) return { favorites: [] };
-        const cl = res.headers.get("content-length");
-        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return { favorites: [] };
-        const text = await res.text();
-        if (text.length > MAX_RESPONSE_BYTES) return { favorites: [] };
-        const data = JSON.parse(text);
-        return {
-            favorites: (data.favorites ?? []).map(reconstructFilm).filter(Boolean),
-        };
-    } catch {
-        return { favorites: [] };
-    }
-}
-
-export async function searchFilm(
-    _: IpcMainInvokeEvent,
-    query: string
-): Promise<any[]> {
-    if (!query.trim()) return [];
-    if (query.length > 200) return [];
-    try {
-        const res = await fetch(
-            `${ITUNES_API}/search?term=${encodeURIComponent(query)}&media=movie&limit=15&entity=movie`
-        );
-        if (!res.ok) return [];
-        const cl = res.headers.get("content-length");
-        if (cl && parseInt(cl, 10) > MAX_RESPONSE_BYTES) return [];
-        const text = await res.text();
-        if (text.length > MAX_RESPONSE_BYTES) return [];
-        const json = JSON.parse(text);
-        return (json.results ?? []).map((t: any) => ({
-            id: t.trackId,
-            title: t.trackName ?? "",
-            director: t.artistName ?? "",
-            genre: t.primaryGenreName ?? "",
-            cover_small: (t.artworkUrl100 ?? "").replace("100x100", "200x300"),
-            cover_medium: (t.artworkUrl100 ?? "").replace("100x100", "400x600"),
-            cover_big: (t.artworkUrl100 ?? "").replace("100x100", "600x900"),
-            duration: Math.round((t.trackTimeMillis ?? 0) / 1000),
-            link: t.trackViewUrl ?? "",
-            release_year: t.releaseDate ? new Date(t.releaseDate).getFullYear() : null,
         }));
     } catch {
         return [];

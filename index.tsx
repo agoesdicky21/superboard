@@ -43,8 +43,7 @@ const STORE_KEY_HATE = "FavAnime_hated";
 const STORE_KEY_ANIME_TOKEN = "FavAnime_syncToken";
 const STORE_KEY_MANGA = "FavManga_favorites";
 const STORE_KEY_MANGA_TOKEN = "FavManga_syncToken";
-const STORE_KEY_FILM = "FavFilm_favorites";
-const STORE_KEY_FILM_TOKEN = "FavFilm_syncToken";
+
 const STORE_KEY_SERIES = "FavSeries_favorites";
 const STORE_KEY_SERIES_TOKEN = "FavSeries_syncToken";
 const STORE_KEY_BOOK = "FavBook_favorites";
@@ -109,19 +108,6 @@ interface MangaData {
     synopsis: string | null;
     year: number | null;
     genres: Array<{ mal_id: number; name: string; }>;
-}
-
-interface FilmData {
-    id: number;
-    title: string;
-    director: string;
-    genre: string;
-    cover_small: string;
-    cover_medium: string;
-    cover_big: string;
-    duration: number;
-    link: string;
-    release_year: number | null;
 }
 
 interface SeriesData {
@@ -341,55 +327,6 @@ async function reorderManga(newList: MangaData[]) {
     scheduleMangaSync();
 }
 
-// ==================== Film Data Layer ====================
-
-let cachedFilms: FilmData[] = [];
-
-function slimFilm(f: FilmData): FilmData {
-    return {
-        id: f.id,
-        title: f.title,
-        director: f.director,
-        genre: f.genre,
-        cover_small: f.cover_small,
-        cover_medium: f.cover_medium,
-        cover_big: f.cover_big,
-        duration: f.duration,
-        link: f.link,
-        release_year: f.release_year,
-    };
-}
-
-async function loadFilms(): Promise<FilmData[]> {
-    try {
-        const data = await DataStoreGet(STORE_KEY_FILM) as FilmData[] | undefined;
-        cachedFilms = data ?? [];
-    } catch (e) {
-        logger.error("Failed to load films:", e);
-        cachedFilms = [];
-    }
-    return cachedFilms;
-}
-
-async function addFilm(film: FilmData) {
-    if (cachedFilms.some(f => f.id === film.id)) return;
-    cachedFilms = [...cachedFilms, film];
-    await DataStoreSet(STORE_KEY_FILM, cachedFilms);
-    scheduleFilmSync();
-}
-
-async function removeFilm(id: number) {
-    cachedFilms = cachedFilms.filter(f => f.id !== id);
-    await DataStoreSet(STORE_KEY_FILM, cachedFilms);
-    scheduleFilmSync();
-}
-
-async function reorderFilms(newList: FilmData[]) {
-    cachedFilms = newList;
-    await DataStoreSet(STORE_KEY_FILM, cachedFilms);
-    scheduleFilmSync();
-}
-
 // ==================== Series Data Layer ====================
 
 let cachedSeries: SeriesData[] = [];
@@ -555,12 +492,6 @@ function remoteMangaCacheSet(userId: string, value: { manga: MangaData[]; fetche
     remoteMangaCache.set(userId, value);
 }
 
-const remoteFilmCache = new Map<string, { films: FilmData[]; fetchedAt: number; }>();
-function remoteFilmCacheSet(userId: string, value: { films: FilmData[]; fetchedAt: number; }) {
-    if (remoteFilmCache.size >= REMOTE_CACHE_MAX) remoteFilmCache.delete(remoteFilmCache.keys().next().value!);
-    remoteFilmCache.set(userId, value);
-}
-
 const remoteSeriesCache = new Map<string, { series: SeriesData[]; fetchedAt: number; }>();
 function remoteSeriesCacheSet(userId: string, value: { series: SeriesData[]; fetchedAt: number; }) {
     if (remoteSeriesCache.size >= REMOTE_CACHE_MAX) remoteSeriesCache.delete(remoteSeriesCache.keys().next().value!);
@@ -719,53 +650,6 @@ async function fetchRemoteMangaList(userId: string): Promise<{ manga: MangaData[
         remoteMangaCacheSet(userId, result);
         return result;
     } catch (e) { logger.error(`Failed to fetch remote manga for ${userId}:`, e); return null; }
-}
-
-// ==================== Film Server Sync ====================
-
-let filmSyncToken: string | null = null;
-let filmSyncTimer: ReturnType<typeof setTimeout> | null = null;
-
-function scheduleFilmSync() {
-    if (filmSyncTimer) clearTimeout(filmSyncTimer);
-    filmSyncTimer = setTimeout(() => { filmSyncTimer = null; syncFilmToServer().catch(() => { }); }, 2000);
-}
-
-async function loadFilmSyncToken(): Promise<string> {
-    if (filmSyncToken) return filmSyncToken;
-    let token = await DataStoreGet(STORE_KEY_FILM_TOKEN) as string | undefined;
-    if (!token) {
-        const arr = new Uint8Array(24);
-        crypto.getRandomValues(arr);
-        token = Array.from(arr, b => b.toString(16).padStart(2, "0")).join("");
-        await DataStoreSet(STORE_KEY_FILM_TOKEN, token);
-    }
-    filmSyncToken = token;
-    return token;
-}
-
-async function syncFilmToServer(): Promise<boolean> {
-    try {
-        const token = await loadFilmSyncToken();
-        const userId = UserStore.getCurrentUser()?.id;
-        if (!userId) return false;
-        const result = await Native.syncFilmList(userId, token, cachedFilms.map(slimFilm));
-        if (!result.success) { logger.error("Film sync failed:", result.error); return false; }
-        return true;
-    } catch (e) { logger.error("Film sync exception:", e); return false; }
-}
-
-async function fetchRemoteFilmList(userId: string): Promise<{ films: FilmData[]; } | null> {
-    const cached = remoteFilmCache.get(userId);
-    if (cached && Date.now() - cached.fetchedAt < REMOTE_CACHE_TTL) return cached;
-    try {
-        const data = await Native.fetchFilmList(userId);
-        const films: FilmData[] = data.favorites ?? [];
-        if (films.length === 0) return null;
-        const result = { films, fetchedAt: Date.now() };
-        remoteFilmCacheSet(userId, result);
-        return result;
-    } catch (e) { logger.error(`Failed to fetch remote films for ${userId}:`, e); return null; }
 }
 
 // ==================== Series Server Sync ====================
@@ -937,13 +821,6 @@ async function searchMangaJikan(query: string): Promise<MangaData[]> {
     try {
         return (await Native.searchManga(query) ?? []) as MangaData[];
     } catch (e) { logger.error("Manga search failed:", e); return []; }
-}
-
-async function searchFilmItunes(query: string): Promise<FilmData[]> {
-    if (!query.trim()) return [];
-    try {
-        return (await Native.searchFilm(query) ?? []) as FilmData[];
-    } catch (e) { logger.error("Film search failed:", e); return []; }
 }
 
 async function searchSeriesTvmaze(query: string): Promise<SeriesData[]> {
@@ -1250,44 +1127,6 @@ function MangaCard({ manga, onAdd, onRemove, added, compact }: {
                 <span className="vc-superboard-card-title" title={title}>{title}</span>
                 <span className="vc-superboard-card-meta">
                     {manga.type ?? "?"}{manga.chapters ? ` · ${manga.chapters} Ch` : ""}{manga.volumes ? ` · ${manga.volumes} Vol` : ""}{manga.year ? ` · ${manga.year}` : ""}
-                </span>
-            </div>
-        </div>
-    );
-}
-
-function FilmCard({ film, onAdd, onRemove, added, compact }: {
-    film: FilmData;
-    onAdd?: () => void;
-    onRemove?: () => void;
-    added?: boolean;
-    compact?: boolean;
-}) {
-    const imgUrl = compact ? film.cover_medium : (film.cover_big || film.cover_medium);
-    return (
-        <div className={`vc-superboard-card${compact ? " vc-superboard-card-compact" : ""}`}
-            onClick={() => window.open(film.link, "_blank", "noopener,noreferrer")}>
-            <div className="vc-superboard-card-poster vc-superboard-poster-anime">
-                <ProxiedImage src={imgUrl} alt={film.title} loading="eager" />
-                {film.release_year && (
-                    <span className="vc-superboard-badge-score">🎬 {film.release_year}</span>
-                )}
-                {onRemove && (
-                    <button className="vc-superboard-btn-remove"
-                        onClick={e => { e.stopPropagation(); onRemove(); }} title="Remove">✕</button>
-                )}
-                {onAdd && (
-                    <button className={`vc-superboard-btn-add${added ? " vc-superboard-btn-added" : ""}`}
-                        onClick={e => { e.stopPropagation(); if (!added) onAdd(); }}
-                        title={added ? "Already added" : "Add to favorites"}>
-                        {added ? "✓" : "+"}
-                    </button>
-                )}
-            </div>
-            <div className="vc-superboard-card-info">
-                <span className="vc-superboard-card-title" title={film.title}>{film.title}</span>
-                <span className="vc-superboard-card-meta">
-                    {film.director}{film.genre ? ` · ${film.genre}` : ""}{film.duration ? ` · ${formatDuration(film.duration)}` : ""}
                 </span>
             </div>
         </div>
@@ -1623,74 +1462,6 @@ function MangaSearchModal({ rootProps, onChanged }: { rootProps: any; onChanged:
 
 function openMangaSearchModal(onChanged: () => void) {
     openModal(props => <MangaSearchModal rootProps={props} onChanged={onChanged} />);
-}
-
-// ==================== Film Search Modal ====================
-
-function FilmSearchModal({ rootProps, onChanged }: { rootProps: any; onChanged: () => void; }) {
-    const [query, setQuery] = useState("");
-    const [results, setResults] = useState<FilmData[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [addedIds, setAddedIds] = useState<Set<number>>(new Set(cachedFilms.map(f => f.id)));
-    const debouncedQuery = useDebounce(query, 400);
-
-    useEffect(() => {
-        if (!debouncedQuery.trim()) { setResults([]); return; }
-        let cancelled = false;
-        setLoading(true);
-        searchFilmItunes(debouncedQuery).then(data => { if (!cancelled) { setResults(data); setLoading(false); } });
-        return () => { cancelled = true; };
-    }, [debouncedQuery]);
-
-    const handleAdd = useCallback(async (film: FilmData) => {
-        await addFilm(film);
-        setAddedIds(new Set(cachedFilms.map(f => f.id)));
-        onChanged();
-    }, [onChanged]);
-
-    return (
-        <ModalRoot {...rootProps} size={ModalSize.LARGE}>
-            <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flexGrow: 1 }}>🎬 Search Movies — iTunes</Text>
-                <ModalCloseButton onClick={rootProps.onClose} />
-            </ModalHeader>
-            <ModalContent>
-                <div className="vc-superboard-search-container">
-                    <TextInput placeholder="Search for movies..." value={query} onChange={setQuery} autoFocus />
-                    {loading && (
-                        <div className="vc-superboard-loading">
-                            <div className="vc-superboard-spinner" />
-                            <Text variant="text-md/medium">Searching...</Text>
-                        </div>
-                    )}
-                    {!loading && results.length === 0 && debouncedQuery.trim() && (
-                        <div className="vc-superboard-empty">
-                            <Text variant="text-md/medium">No results for &quot;{debouncedQuery}&quot;</Text>
-                        </div>
-                    )}
-                    {!loading && !debouncedQuery.trim() && (
-                        <div className="vc-superboard-empty">
-                            <div className="vc-superboard-empty-icon">🔍</div>
-                            <Text variant="text-md/medium" style={{ color: "var(--text-muted)" }}>
-                                Type above to find your favorite movies
-                            </Text>
-                        </div>
-                    )}
-                    {!loading && results.length > 0 && (
-                        <div className="vc-superboard-search-grid">
-                            {results.map(film => (
-                                <FilmCard key={film.id} film={film} onAdd={() => handleAdd(film)} added={addedIds.has(film.id)} />
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </ModalContent>
-        </ModalRoot>
-    );
-}
-
-function openFilmSearchModal(onChanged: () => void) {
-    openModal(props => <FilmSearchModal rootProps={props} onChanged={onChanged} />);
 }
 
 // ==================== Series Search Modal ====================
@@ -2213,89 +1984,6 @@ function MangaBoardContent({ user, isCurrentUser, onBack }: { user: User; isCurr
     );
 }
 
-function FilmBoardContent({ user, isCurrentUser, onBack }: { user: User; isCurrentUser: boolean; onBack: () => void; }) {
-    const [filmList, setFilmList] = useState<FilmData[]>(isCurrentUser ? cachedFilms : []);
-    const [loading, setLoading] = useState(!isCurrentUser);
-
-    useEffect(() => {
-        if (isCurrentUser) {
-            loadFilms().then(setFilmList);
-        } else {
-            setLoading(true);
-            fetchRemoteFilmList(user.id).then(data => {
-                if (data) setFilmList(data.films);
-                setLoading(false);
-            });
-        }
-    }, [user.id]);
-
-    const handleRemove = useCallback(async (id: number) => {
-        await removeFilm(id);
-        setFilmList([...cachedFilms]);
-    }, []);
-
-    const handleAdd = useCallback(() => {
-        openFilmSearchModal(() => loadFilms().then(setFilmList));
-    }, []);
-
-    const handleReorder = useCallback((newList: FilmData[]) => {
-        setFilmList(newList);
-        reorderFilms(newList);
-    }, []);
-    const dragProps = useDragReorder(filmList, handleReorder);
-
-    if (loading) {
-        return (
-            <div className="vc-superboard-board-content">
-                <div className="vc-superboard-back-row">
-                    <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={onBack}>←</Button>
-                </div>
-                <div className="vc-superboard-loading">
-                    <div className="vc-superboard-spinner" />
-                    <Text variant="text-md/medium">Loading film list...</Text>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="vc-superboard-board-content">
-            <div className="vc-superboard-back-row">
-                <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={onBack}>←</Button>
-            </div>
-            <div className="vc-superboard-board-header">
-                <Text variant="text-xs/semibold" style={{ color: "var(--header-secondary)", textTransform: "uppercase", letterSpacing: "0.02em" }}>
-                    🎬 ({filmList.length})
-                </Text>
-                {isCurrentUser && (
-                    <Button size={Button.Sizes.MIN} color={Button.Colors.PRIMARY} onClick={handleAdd}>Add</Button>
-                )}
-            </div>
-            {filmList.length > 0 ? (
-                <div className="vc-superboard-board-grid">
-                    {filmList.map((film, i) => (
-                        isCurrentUser ? (
-                            <div key={film.id} {...dragProps(i)} className="vc-superboard-drag-item">
-                                <FilmCard film={film} onRemove={() => handleRemove(film.id)} compact />
-                            </div>
-                        ) : (
-                            <FilmCard key={film.id} film={film} compact />
-                        )
-                    ))}
-                </div>
-            ) : (
-                <div className={ProfileListClasses.empty} style={{ padding: "16px 0" }}>
-                    <div className={ProfileListClasses.textContainer}>
-                        <BaseText tag="h3" size="md" weight="medium" style={{ color: "var(--text-strong)" }}>
-                            {isCurrentUser ? "No movies added yet. Use the Add button!" : "No favorite movies."}
-                        </BaseText>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
 function SeriesBoardContent({ user, isCurrentUser, onBack }: { user: User; isCurrentUser: boolean; onBack: () => void; }) {
     const [seriesList, setSeriesList] = useState<SeriesData[]>(isCurrentUser ? cachedSeries : []);
     const [loading, setLoading] = useState(!isCurrentUser);
@@ -2629,31 +2317,6 @@ function MangaListSection({ list, onRefresh }: { list: MangaData[]; onRefresh: (
     );
 }
 
-function FilmListSection({ list, onRefresh }: { list: FilmData[]; onRefresh: () => void; }) {
-    const handleRemove = useCallback(async (id: number) => { await removeFilm(id); onRefresh(); }, [onRefresh]);
-    return (
-        <Forms.FormSection>
-            <Forms.FormTitle tag="h3">🎬 Your Favorite Movies</Forms.FormTitle>
-            <Forms.FormText style={{ marginBottom: 12 }}>
-                Search and add movies from iTunes — shown on your profile's SuperBoard.
-            </Forms.FormText>
-            <Button onClick={() => openFilmSearchModal(onRefresh)} size={Button.Sizes.SMALL} color={Button.Colors.BRAND}>
-                🎬 Add Movie
-            </Button>
-            {list.length > 0 ? (
-                <div className="vc-superboard-settings-grid">
-                    {list.map(film => <FilmCard key={film.id} film={film} onRemove={() => handleRemove(film.id)} />)}
-                </div>
-            ) : (
-                <div className="vc-superboard-settings-empty">
-                    <div className="vc-superboard-empty-icon">🎬</div>
-                    <Text variant="text-md/medium" style={{ color: "var(--text-muted)" }}>No movies added yet. Use the button above to get started!</Text>
-                </div>
-            )}
-        </Forms.FormSection>
-    );
-}
-
 function SeriesListSection({ list, onRefresh }: { list: SeriesData[]; onRefresh: () => void; }) {
     const handleRemove = useCallback(async (id: number) => { await removeSeries(id); onRefresh(); }, [onRefresh]);
     return (
@@ -2783,14 +2446,14 @@ function CloudSyncStatus() {
     const [lastResult, setLastResult] = useState<string>("");
 
     const handleSync = useCallback(async () => {
-        const hasData = cachedMusic.length > 0 || cachedFavorites.length > 0 || cachedHated.length > 0 || cachedManga.length > 0 || cachedFilms.length > 0 || cachedSeries.length > 0 || cachedBooks.length > 0 || cachedTroll.length > 0;
+        const hasData = cachedMusic.length > 0 || cachedFavorites.length > 0 || cachedHated.length > 0 || cachedManga.length > 0 || cachedSeries.length > 0 || cachedBooks.length > 0 || cachedTroll.length > 0;
         if (!hasData) {
             Toasts.show({ type: Toasts.Type.FAILURE, message: "No data to sync!", id: Toasts.genId() });
             return;
         }
         setSyncing(true);
         setLastResult("");
-        const results = await Promise.all([syncMusicToServer(), syncAnimeToServer(), syncMangaToServer(), syncFilmToServer(), syncSeriesToServer(), syncBookToServer(), syncTrollToServer()]);
+        const results = await Promise.all([syncMusicToServer(), syncAnimeToServer(), syncMangaToServer(), syncSeriesToServer(), syncBookToServer(), syncTrollToServer()]);
         setSyncing(false);
         const allOk = results.every(Boolean);
         if (allOk) {
@@ -2818,7 +2481,7 @@ function CloudSyncStatus() {
     );
 }
 
-type SettingsTab = "music" | "anime" | "manga" | "film" | "series" | "book" | "troll" | "sync";
+type SettingsTab = "music" | "anime" | "manga" | "series" | "book" | "troll" | "sync";
 
 function SettingsPanel() {
     const [tab, setTab] = useState<SettingsTab>("music");
@@ -2826,18 +2489,17 @@ function SettingsPanel() {
     const [favorites, setFavorites] = useState<AnimeData[]>(cachedFavorites);
     const [hated, setHated] = useState<AnimeData[]>(cachedHated);
     const [mangaList, setMangaList] = useState<MangaData[]>(cachedManga);
-    const [filmList, setFilmList] = useState<FilmData[]>(cachedFilms);
+
     const [seriesList, setSeriesList] = useState<SeriesData[]>(cachedSeries);
     const [bookList, setBookList] = useState<BookData[]>(cachedBooks);
     const [trollData, setTrollData] = useState<TrollData>(cachedTroll);
 
     const refreshAll = useCallback(() => {
-        Promise.all([loadMusic(), loadFavorites(), loadHated(), loadManga(), loadFilms(), loadSeries(), loadBooks(), loadTroll()]).then(([m, f, h, mn, fl, sr, bk, tr]) => {
+        Promise.all([loadMusic(), loadFavorites(), loadHated(), loadManga(), loadSeries(), loadBooks(), loadTroll()]).then(([m, f, h, mn, sr, bk, tr]) => {
             setMusicList([...m]);
             setFavorites([...f]);
             setHated([...h]);
             setMangaList([...mn]);
-            setFilmList([...fl]);
             setSeriesList([...sr]);
             setBookList([...bk]);
             setTrollData([...tr]);
@@ -2855,8 +2517,7 @@ function SettingsPanel() {
                     onClick={() => setTab("anime")}>🎬 Anime</button>
                 <button className={`vc-superboard-settings-tab${tab === "manga" ? " vc-superboard-settings-tab-active" : ""}`}
                     onClick={() => setTab("manga")}>📚 Manga</button>
-                <button className={`vc-superboard-settings-tab${tab === "film" ? " vc-superboard-settings-tab-active" : ""}`}
-                    onClick={() => setTab("film")}>🎬 Film</button>
+
                 <button className={`vc-superboard-settings-tab${tab === "series" ? " vc-superboard-settings-tab-active" : ""}`}
                     onClick={() => setTab("series")}>📺 Series</button>
                 <button className={`vc-superboard-settings-tab${tab === "book" ? " vc-superboard-settings-tab-active" : ""}`}
@@ -2878,7 +2539,7 @@ function SettingsPanel() {
                 </>
             )}
             {tab === "manga" && <MangaListSection list={mangaList} onRefresh={refreshAll} />}
-            {tab === "film" && <FilmListSection list={filmList} onRefresh={refreshAll} />}
+
             {tab === "series" && <SeriesListSection list={seriesList} onRefresh={refreshAll} />}
             {tab === "book" && <BookListSection list={bookList} onRefresh={refreshAll} />}
             {tab === "troll" && <TrollSettingsSection trollData={trollData} onRefresh={refreshAll} />}
@@ -2905,7 +2566,7 @@ function isTrollEnabled(): boolean {
 
 export default definePlugin({
     name: "SuperBoard",
-    description: "SuperBoard — A unified profile board with GameBoard, MusicBoard, AniBoard, MangaBoard, FilmBoard, SeriesBoard, BookBoard, and troll content boards (FavWiki). Music & films powered by iTunes, anime & manga powered by MyAnimeList via Jikan API, TV series powered by TVMaze, books powered by Open Library, troll articles powered by Wikipedia.",
+    description: "SuperBoard — A unified profile board with GameBoard, MusicBoard, AniBoard, MangaBoard, SeriesBoard, BookBoard, and troll content boards (FavWiki). Music powered by iTunes, anime & manga powered by MyAnimeList via Jikan API, TV series powered by TVMaze, books powered by Open Library, troll articles powered by Wikipedia.",
     authors: [{ name: "canplus", id: 852614422235971655n }],
 
     options: {
@@ -2919,7 +2580,7 @@ export default definePlugin({
     settingsAboutComponent: () => <SettingsPanel />,
 
     async start() {
-        await Promise.all([loadMusic(), loadFavorites(), loadHated(), loadManga(), loadFilms(), loadSeries(), loadBooks(), loadTroll()]);
+        await Promise.all([loadMusic(), loadFavorites(), loadHated(), loadManga(), loadSeries(), loadBooks(), loadTroll()]);
     },
 
     stop() {
@@ -2986,7 +2647,7 @@ export default definePlugin({
         const boardTabRef = React.useRef<HTMLElement | null>(null);
         const currentUser = UserStore.getCurrentUser();
         const isCurrentUser = !!currentUser && !!user && user.id === currentUser.id;
-        const [activeBoard, setActiveBoard] = useState<"selector" | "music" | "anime" | "manga" | "film" | "series" | "book" | "troll">("selector");
+        const [activeBoard, setActiveBoard] = useState<"selector" | "music" | "anime" | "manga" | "series" | "book" | "troll">("selector");
         const [availableBoards, setAvailableBoards] = useState<Set<string> | null>(isCurrentUser ? null : new Set());
         const [boardsLoading, setBoardsLoading] = useState(!isCurrentUser);
 
@@ -2999,7 +2660,6 @@ export default definePlugin({
                 fetchRemoteMusicList(user.id).then(d => { if (d) boards.add("music"); }),
                 fetchRemoteAnimeList(user.id).then(d => { if (d) boards.add("anime"); }),
                 fetchRemoteMangaList(user.id).then(d => { if (d) boards.add("manga"); }),
-                fetchRemoteFilmList(user.id).then(d => { if (d) boards.add("film"); }),
                 fetchRemoteSeriesList(user.id).then(d => { if (d) boards.add("series"); }),
                 fetchRemoteBookList(user.id).then(d => { if (d) boards.add("book"); }),
                 fetchRemoteTrollData(user.id).then(d => { if (d) boards.add("troll"); }),
@@ -3057,9 +2717,6 @@ export default definePlugin({
             case "manga":
                 content = <MangaBoardContent user={user} isCurrentUser={isCurrentUser} onBack={goBack} />;
                 break;
-            case "film":
-                content = <FilmBoardContent user={user} isCurrentUser={isCurrentUser} onBack={goBack} />;
-                break;
             case "series":
                 content = <SeriesBoardContent user={user} isCurrentUser={isCurrentUser} onBack={goBack} />;
                 break;
@@ -3087,7 +2744,7 @@ export default definePlugin({
 
 // ==================== Board Selector ====================
 
-function BoardSelector({ onSelect, onGameBoard, isCurrentUser, availableBoards, boardsLoading }: { onSelect: (board: "music" | "anime" | "manga" | "film" | "series" | "book" | "troll") => void; onGameBoard: () => void; isCurrentUser: boolean; availableBoards: Set<string> | null; boardsLoading: boolean; }) {
+function BoardSelector({ onSelect, onGameBoard, isCurrentUser, availableBoards, boardsLoading }: { onSelect: (board: "music" | "anime" | "manga" | "series" | "book" | "troll") => void; onGameBoard: () => void; isCurrentUser: boolean; availableBoards: Set<string> | null; boardsLoading: boolean; }) {
     const show = (board: string) => isCurrentUser || !availableBoards || availableBoards.has(board);
 
     return (
@@ -3123,13 +2780,6 @@ function BoardSelector({ onSelect, onGameBoard, isCurrentUser, availableBoards, 
                         <span className="vc-superboard-selector-icon">📚</span>
                         <Text variant="text-sm/bold">MangaBoard</Text>
                         <Text variant="text-xs/normal" style={{ color: "var(--text-muted)" }}>Manga List</Text>
-                    </button>
-                )}
-                {show("film") && (
-                    <button className="vc-superboard-selector-card" onClick={() => onSelect("film")}>
-                        <span className="vc-superboard-selector-icon">🎥</span>
-                        <Text variant="text-sm/bold">FilmBoard</Text>
-                        <Text variant="text-xs/normal" style={{ color: "var(--text-muted)" }}>Favorite Movies</Text>
                     </button>
                 )}
                 {show("series") && (

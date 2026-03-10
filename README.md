@@ -23,7 +23,7 @@ A unified profile board for Discord — combines **MusicBoard**, **AniBoard**, *
 
 1. Enable the **SuperBoard** plugin in Vencord settings.
 2. Open any user's profile and click the **SuperBoard** tab.
-3. Choose **MusicBoard**, **AniBoard**, **MangaBoard**, **FilmBoard**, **SeriesBoard**, **BookBoard**, **TrollBoard**, or **GameBoard** from the selector.
+3. Choose **MusicBoard**, **AniBoard**, **MangaBoard**, **FilmBoard**, **SeriesBoard**, **BookBoard**, **TrollBoards**, or **GameBoard** from the selector.
 4. Use the **Add** button to search and add items to your lists.
 5. Your lists sync automatically. Use **Sync Now** in settings for manual sync.
 
@@ -99,6 +99,7 @@ This plugin uses the following external APIs:
 - **[TVMaze API](https://www.tvmaze.com/api)** — TV series search. No authentication required.
 - **[Open Library API](https://openlibrary.org/developers/api)** — Book search and cover images. No authentication required.
 - **Custom sync server** — anachter.dev backend. Stores music, anime, manga, film, series, and book lists by Discord user ID.
+
 
 
 

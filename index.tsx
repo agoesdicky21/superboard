@@ -999,6 +999,7 @@ async function fetchAudioBlob(previewUrl: string): Promise<string> {
     const cached = audioBlobCache.get(previewUrl);
     if (cached) return cached;
     try {
+        if (!Native?.fetchAudio) return "";
         const dataUri = await Native.fetchAudio(previewUrl);
         if (!dataUri) return "";
         const [header, b64] = dataUri.split(",", 2);
@@ -1117,7 +1118,7 @@ function ProxiedImage({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageE
         if (cached) { setDataUrl(cached); return; }
         let promise = imageInflight.get(src);
         if (!promise) {
-            promise = Native.fetchImage(src).catch(() => "");
+            promise = Native?.fetchImage?.(src)?.catch(() => "") ?? Promise.resolve("");
             imageInflight.set(src, promise);
             promise.finally(() => imageInflight.delete(src));
         }

@@ -36,8 +36,8 @@ A unified profile board for Discord — combines **MusicBoard**, **AniBoard**, *
 
 ### 🎬 AniBoard
 - Search and add anime from MyAnimeList via Jikan API.
-- **Favorites** — anime you love, with score badges.
-- **Hate list** — anime you can't stand, with 💔 badges.
+- **Favorites** — anime you love.
+- **Hate list** — anime you can't stand.
 - **MAL Import** — enter your MAL username to import favorites automatically.
 - Click on any card to open the MyAnimeList page.
 
@@ -92,6 +92,7 @@ This plugin uses the following external APIs:
 - **[TVMaze API](https://www.tvmaze.com/api)** — TV series search. No authentication required.
 - **[Open Library API](https://openlibrary.org/developers/api)** — Book search and cover images. No authentication required.
 - **Custom sync server** — anachter.dev backend. Stores music, anime, manga, series, and book lists by Discord user ID.
+
 
 
 

